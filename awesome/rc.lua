@@ -16,7 +16,6 @@ local lain = require("lain")
 local drop = require("scratchdrop")
 
 -- Load Debian menu entries
-require("debian.menu")
 
 -- {{{ Error handling 
 -- Check if awesome encountered an error during startup and fell back to 
@@ -39,7 +38,7 @@ end
 
 run_once("gnome-settings-daemon")
 run_once("xcompmgr")
-run_once("gnome-terminal")
+run_once("xfce4-terminal")
 
 -- Handle runtime errors after startup
 do
@@ -62,7 +61,7 @@ end
 beautiful.init("/usr/share/awesome/themes/default/theme.lua")
 
 -- This is used later as the default terminal and editor to run.
-terminal = "x-terminal-emulator"
+terminal = "xfce4-terminal"
 editor = os.getenv("EDITOR") or "editor"
 editor_cmd = terminal .. " -e " .. editor
 
@@ -118,7 +117,6 @@ myawesomemenu = {
 }
 
 mymainmenu = awful.menu({ items = { { "awesome", myawesomemenu, beautiful.awesome_icon },
-                                    { "Debian", debian.menu.Debian_menu.Debian },
                                     { "open terminal", terminal }
                                   }
                         })
@@ -155,7 +153,6 @@ mpdwidget = lain.widgets.mpd({
     end
 })
 -- Battery
--- Battery
 batterywidget = lain.widgets.bat({
     settings = function()
         bat_header = " Bat "
@@ -167,6 +164,22 @@ batterywidget = lain.widgets.bat({
         end
 
         widget:set_markup(markup(gray, bat_header) .. bat_p)
+    end
+})
+
+-- ALSA volume
+volumewidget = lain.widgets.alsa({
+    settings = function()
+        header = " Vol "
+        level  = volume_now.level
+
+        if volume_now.status == "off" then
+            level = level .. "  "
+        else
+            level = level .. "  "
+        end
+
+        widget:set_markup(markup(gray, header) .. level)
     end
 })
 
@@ -250,11 +263,12 @@ for s = 1, screen.count() do
     -- Widgets that are aligned to the right
     local right_layout = wibox.layout.fixed.horizontal()
     if s == 1 then right_layout:add(wibox.widget.systray()) end
+    right_layout:add(volumewidget)
     right_layout:add(mpdwidget)
     right_layout:add(batterywidget)
     right_layout:add(mytextclock)
     right_layout:add(mylayoutbox[s])
-
+    
     -- Now bring it all together (with the tasklist in the middle)
     local layout = wibox.layout.align.horizontal()
     layout:set_left(left_layout)
@@ -280,8 +294,22 @@ globalkeys = awful.util.table.join(
     awful.key({ modkey,           }, "Escape", awful.tag.history.restore),
 
     -- Drop down terminal
-    awful.key({ modkey,		  }, "F2", function () drop("gnome-terminal", "top", "center", 0.4, 0.4, false, mouse.screen) end),
+    awful.key({ modkey,		  }, "F2", function () 
+drop("xfce4-terminal", "top", "center", 0.4, 0.4, false, 
+mouse.screen) end),
 
+   -- Backlight Adjustment
+   awful.key({ modkey, "Shift"	  }, "F2", function () awful.util.spawn("xbacklight -dec 10") end),
+   awful.key({ modkey, "Shift"	  }, "F3", function () awful.util.spawn("xbacklight -inc 10") end),
+
+   -- Volume Adjustment
+   awful.key({ modkey, "Shift"    }, "F7", function () awful.util.spawn("amixer -q sset Master 5%-") 
+end),
+   awful.key({ modkey, "Shift"    }, "F8", function () awful.util.spawn("amixer -q sset Master 5%+") 
+end),
+   awful.key({ modkey, "Shift"    }, "F6", function () awful.util.spawn("amixer -q sset Master toggle") 
+end),
+   
     awful.key({ modkey,           }, "j",
         function ()
             awful.client.focus.byidx( 1)
@@ -309,7 +337,9 @@ globalkeys = awful.util.table.join(
         end),
 
     -- Standard program
-    awful.key({ modkey,           }, "Return", function () awful.util.spawn(terminal) end),
+    awful.key({ modkey,           }, "Return", function () 
+awful.util.spawn("xfce4-terminal") 
+end),
     awful.key({ modkey, "Control" }, "r", awesome.restart),
     awful.key({ modkey, "Shift"   }, "q", awesome.quit),
 
